@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>پروژکتور</title>
+  <style>
+    body, html { margin: 0; padding: 0; background: #f0f0f0; }
+    canvas { display: block; margin: auto; background: white; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="800" height="600"></canvas>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    socket.on('draw_point', (data) => {
+      ctx.fillStyle = data.color;
+      ctx.beginPath();
+      ctx.arc(data.x, data.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  </script>
+</body>
+</html>

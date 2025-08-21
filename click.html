@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>کلیک کنید</title>
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; display: flex;
+                 justify-content: center; align-items: center; }
+    button { font-size: 2rem; padding: 20px 40px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <button id="clickBtn">کلید کنید</button>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const btn = document.getElementById('clickBtn');
+
+    btn.addEventListener('click', () => {
+      const x = Math.floor(Math.random() * 800);
+      const y = Math.floor(Math.random() * 600);
+      const colors = ['red', 'blue', 'green', 'orange', 'purple'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+
+      socket.emit('click_event', {x, y, color});
+    });
+  </script>
+</body>
+</html>
