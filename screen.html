@@ -1,28 +1,117 @@
-<!DOCTYPE html>
-<html lang="fa">
+<!doctype html>
+<html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>پروژکتور</title>
+  <meta charset="utf-8">
+  <title>گیرنده تصویر</title>
+  <script src="/socket.io/socket.io.js"></script>
   <style>
-    body, html { margin: 0; padding: 0; background: #f0f0f0; }
-    canvas { display: block; margin: auto; background: white; }
+    body { background:#0b1324; margin:0; display:flex; flex-direction:column;
+           align-items:center; justify-content:center; color:#eee; }
+    header { margin:1rem; display:flex; gap:1rem; }
+    canvas { display:block; border:2px solid #333; border-radius:12px; }
+    .progress { width:400px; height:10px; background:#222; border-radius:999px;
+                overflow:hidden; margin-top:1rem; }
+    .bar { height:100%; width:0%; background:#22c55e; }
   </style>
 </head>
 <body>
-  <canvas id="canvas" width="800" height="600"></canvas>
+  <header>
+    <label style="background:#22c55e;color:#000;padding:.5rem 1rem;border-radius:8px;cursor:pointer">
+      انتخاب تصویر<input id="file" type="file" accept="image/*" hidden>
+    </label>
+    <button id="resetBtn">شروع دوباره</button>
+    <span id="stat">0/0</span>
+  </header>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <div>
+    <canvas id="img" width="400" height="400"></canvas>
+    <canvas id="mask" width="400" height="400"
+      style="position:relative; margin-top:-404px;"></canvas>
+  </div>
+  <div class="progress"><div class="bar" id="bar"></div></div>
+
   <script>
     const socket = io();
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
 
-    socket.on('draw_point', (data) => {
-      ctx.fillStyle = data.color;
-      ctx.beginPath();
-      ctx.arc(data.x, data.y, 5, 0, Math.PI * 2);
-      ctx.fill();
+    const imgCanvas = document.getElementById("img");
+    const maskCanvas = document.getElementById("mask");
+    const imgCtx = imgCanvas.getContext("2d");
+    const maskCtx = maskCanvas.getContext("2d");
+    const fileInput = document.getElementById("file");
+    const resetBtn = document.getElementById("resetBtn");
+    const statEl = document.getElementById("stat");
+    const barEl = document.getElementById("bar");
+
+    let COLS = 20, ROWS = 20, TOTAL = COLS*ROWS;
+    let order = [], revealed = 0;
+    let tiles = [];
+
+    function computeTiles() {
+      tiles = [];
+      for (let r=0;r<ROWS;r++){
+        for (let c=0;c<COLS;c++){
+          tiles.push({x:c*20,y:r*20,w:20,h:20});
+        }
+      }
+    }
+    computeTiles();
+
+    function fillMask() {
+      maskCtx.fillStyle = "#fff";
+      maskCtx.fillRect(0,0,400,400);
+    }
+
+    function revealIndex(i) {
+      const t = tiles[i]; if(!t) return;
+      maskCtx.clearRect(t.x,t.y,t.w,t.h);
+    }
+
+    function setProgress() {
+      statEl.textContent = `${revealed}/${TOTAL}`;
+      barEl.style.width = (revealed/TOTAL*100)+"%";
+    }
+
+    // socket events
+    socket.on("init", ({cols,rows,order:ord,revealed:rev,image})=>{
+      COLS=cols; ROWS=rows; TOTAL=COLS*ROWS; order=ord;
+      computeTiles(); fillMask();
+      if(image) drawImage(image);
+      revealed=0;
+      for(let k=0;k<rev;k++){ revealIndex(order[k]); revealed++; }
+      setProgress();
     });
+
+    socket.on("reveal", ({revealed:rev})=>{
+      const idx = order[rev-1];
+      revealIndex(idx);
+      revealed=rev;
+      setProgress();
+    });
+
+    socket.on("reset", ({order:ord,revealed:rev})=>{
+      order=ord; revealed=0; fillMask(); setProgress();
+    });
+
+    socket.on("image", ({image})=>{ drawImage(image); });
+
+    // UI
+    resetBtn.onclick = ()=> socket.emit("reset");
+    fileInput.onchange = (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=> socket.emit("setImage", reader.result);
+      reader.readAsDataURL(file);
+    };
+
+    function drawImage(dataUrl) {
+      const img = new Image();
+      img.onload = ()=>{ imgCtx.clearRect(0,0,400,400); imgCtx.drawImage(img,0,0,400,400); };
+      img.src = dataUrl;
+    }
+
+    // init request
+    socket.emit("getState");
+    fillMask(); setProgress();
   </script>
 </body>
 </html>

@@ -1,29 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fa">
 <head>
-  <meta charset="UTF-8">
-  <title>کلیک کنید</title>
-  <style>
-    body, html { margin: 0; padding: 0; height: 100%; display: flex;
-                 justify-content: center; align-items: center; }
-    button { font-size: 2rem; padding: 20px 40px; cursor: pointer; }
-  </style>
-</head>
-<body>
-  <button id="clickBtn">کلید کنید</button>
-
+  <meta charset="utf-8">
+  <title>فرستنده کلیک</title>
   <script src="/socket.io/socket.io.js"></script>
+</head>
+<body style="display:flex;justify-content:center;align-items:center;height:100vh;background:#0f172a;color:#fff;font-family:sans-serif;">
+  <div style="text-align:center;">
+    <button id="btn" style="font-size:1.2rem;padding:1rem 2rem;border-radius:16px;border:0;background:#22c55e;color:#000;cursor:pointer;">
+      کلیک کنید
+    </button>
+    <p>کلیک‌ها: <span id="count">0</span></p>
+  </div>
+
   <script>
     const socket = io();
-    const btn = document.getElementById('clickBtn');
+    const btn = document.getElementById("btn");
+    const countEl = document.getElementById("count");
+    let clicks = 0;
 
-    btn.addEventListener('click', () => {
-      const x = Math.floor(Math.random() * 800);
-      const y = Math.floor(Math.random() * 600);
-      const colors = ['red', 'blue', 'green', 'orange', 'purple'];
-      const color = colors[Math.floor(Math.random() * colors.length)];
-
-      socket.emit('click_event', {x, y, color});
+    btn.addEventListener("click", () => {
+      socket.emit("click");
+      clicks++;
+      countEl.textContent = clicks;
     });
   </script>
 </body>
